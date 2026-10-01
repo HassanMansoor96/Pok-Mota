@@ -1,0 +1,1 @@
+'use strict';require('dotenv').config();const fs=require('node:fs');const path=require('node:path');const pool=require('./db');(async()=>{try{await pool.query(fs.readFileSync(path.join(__dirname,'schema.sql'),'utf8'));console.log('PokéMota database initialized. No sample stock was inserted.');}catch(err){console.error(err);process.exitCode=1;}finally{await pool.end();}})();
