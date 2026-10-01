@@ -1,28 +1,46 @@
-# PokéMota — complete read-only website preview
+# PokéMota — storefront + Create/Update inventory
 
-This branch contains the complete **static, read-only** PokéMota concept site. All product data and artwork are fictional demonstration content. There is no production inventory, authenticated admin, real contact form, order placement, payment collection or delivery commitment.
+## Requirements
+- Node.js 20+
+- PostgreSQL 15+ running locally
 
-## Run
+## Local setup
 
-Open the folder in VS Code and start **Live Server** on `index.html`. Or run `python3 -m http.server 8080` and visit http://localhost:8080.
+```bash
+git fetch origin
+git switch feature/admin-create-update
+npm install
+cp .env.example .env
+# Edit .env: set your local PostgreSQL DATABASE_URL and a unique ADMIN_PASSWORD (16+ chars).
+# Create the pokemota database first (for example, createdb pokemota).
+npm run db:init
+npm run dev
+```
 
-## Pages
+Visit **http://localhost:3000** for the storefront and **http://localhost:3000/admin.html** to sign in and manage inventory. **Do not use VS Code Live Server for CRUD**: it cannot run the backend. Do not commit `.env`.
 
-- `index.html` — brand landing page, demo featured products, client-side sample cart (checkout disabled)
-- `catalogue.html` — searchable/filterable catalogue with set, rarity, category and sorting
-- `product.html?id=demo-001` — individual product detail (dynamic demo URL)
-- `collections.html` — singles, sealed and chase collection landing cards
-- `about.html` — brand story
-- `faq.html` — pre-launch FAQ
-- `shipping.html` — provisional delivery information
-- `contact.html` — contact information placeholder; no fake form
-- `privacy.html` — prototype-only privacy notice
-- `inventory-preview.html` — **public, read-only design mockup** for future admin; **not a secure admin area**
+The new PostgreSQL database starts **empty**. Create a product in the admin screen, optionally mark it Published, then refresh the storefront. Published products appear in the catalogue and homepage. Unpublished products are admin-only. The homepage retains a demo shopping bag with checkout disabled.
 
-## Shared assets
+The static GitHub Pages preview will still show example products because GitHub Pages cannot host the Node/PostgreSQL API. A production deployment must host the backend separately or migrate to a compatible hosting arrangement.
 
-`styles.css` provides the original visual system, `site.css` extends it for the complete site. `products.js` holds demonstration inventory. `app.js` handles the homepage demo cart and `site.js` handles multi-page navigation, filtering, product detail and inventory preview.
+## API
 
-## Production work still required
+- `GET /api/products` and `GET /api/products/:id` — published products only
+- `POST /api/admin/login` — admin sign-in; session cookie and CSRF token
+- `GET /api/admin/session` — current admin session
+- `POST /api/admin/logout` — end session
+- `GET /api/admin/products` — all products, authenticated
+- `POST /api/admin/products` — create, authenticated + CSRF
+- `PUT /api/admin/products/:id` — update, authenticated + CSRF
 
-Confirm real inventory and product photography; secure Node/Express API; PostgreSQL schema; authenticated admin dashboard; CSV import; stock and order lifecycle; verified shipping, returns and privacy policies; Payfast integration with server-side verification; security, accessibility and browser QA; hosting/domain and monitoring. Do **not** deploy this preview as a live store or treat the dashboard mockup as private.
+All prices are stored as integer cents. No sample products are inserted automatically. This stage intentionally does not include Delete, real photo upload, orders or payments. The in-memory session store is for local development only: use a shared persistent session store, HTTPS, a reviewed CSP and proper production secrets before deploying admin publicly. Set `PUBLIC_ORIGIN` to the exact production origin in production.
+
+## Test
+
+```bash
+npm test
+```
+
+## Existing pages
+
+Homepage, catalogue, product details, collections, story, FAQ, shipping, contact, privacy and the older **public read-only** inventory mockup (`inventory-preview.html`). The new private editor is `admin.html`.
