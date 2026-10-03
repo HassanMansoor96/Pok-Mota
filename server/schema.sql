@@ -18,3 +18,6 @@ CREATE TABLE IF NOT EXISTS products (
  updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_products_published ON products(is_published,created_at DESC);
+
+-- Additive migration: existing inventory is preserved.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS card_metadata jsonb NOT NULL DEFAULT '{}'::jsonb;

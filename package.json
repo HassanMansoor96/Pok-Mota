@@ -7,10 +7,19 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "db:init": "node server/init-db.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "db:runtime": "node server/provision-runtime.js",
+    "ops:maintenance": "node server/maintenance.js",
+    "backup": "node server/backup.js",
+    "backup:drill": "node server/restore-drill.js",
+    "account:recovery": "node server/issue-recovery.js",
+    "ops:retention": "node server/data-retention.js",
+    "admin:mfa-setup": "node server/setup-admin-mfa.js",
+    "ops:monitor": "node server/monitor.js",
+    "admin:recover": "node server/recover-admin.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": "^22.0.0 || ^24.0.0"
   },
   "dependencies": {
     "express": "^4.21.2",

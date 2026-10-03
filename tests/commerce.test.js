@@ -1,0 +1,14 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const {offersFrom,createMarketPrices}=require('../server/market-prices');
+const {normalizeItems,customerFrom,quoteFrom}=require('../server/orders');
+const id=crypto.randomUUID();
+test('market prices distinguish variants and currencies',()=>{const p=offersFrom({pricing:{tcgplayer:{unit:'USD',normal:{marketPrice:2},reverse:{marketPrice:3}},cardmarket:{unit:'EUR',trend:4,'trend-holo':5}}});assert.deepEqual(p.map(x=>x.currency),['USD','USD','EUR','EUR']);assert.equal(p[1].variant,'reverse');});
+test('does not invent prices from missing or zero data',()=>{assert.deepEqual(offersFrom({pricing:{tcgplayer:{normal:{marketPrice:0},holo:{marketPrice:null}}}}),[]);});
+test('converts valid market prices to integer ZAR cents',async()=>{let calls=0;const get=createMarketPrices(async()=>{calls++;return {ok:true,json:async()=>({rate:18.5,date:new Date().toISOString().slice(0,10)})};});const card={pricing:{tcgplayer:{unit:'USD',updated:new Date().toISOString(),normal:{marketPrice:10}}}};const [p]=await get(card);await get(card);assert.equal(p.zarCents,18500);assert.equal(p.stale,false);assert.equal(calls,1);});
+test('FX outage preserves source amount without fake rand value',async()=>{const get=createMarketPrices(async()=>{throw Error('offline');});const [p]=await get({pricing:{cardmarket:{trend:2,updated:'2020-01-01'}}});assert.equal(p.zarCents,null);assert.equal(p.amount,2);assert.equal(p.stale,true);});
+test('rejects stale exchange rates',async()=>{const get=createMarketPrices(async()=>({ok:true,json:async()=>({rate:18,date:'2020-01-01'})}));assert.equal((await get({pricing:{tcgplayer:{normal:{marketPrice:2}}}}))[0].zarCents,null);});
+test('bag rejects duplicate and fractional items',()=>{assert.throws(()=>normalizeItems([{id,quantity:1},{id,quantity:1}]));assert.throws(()=>normalizeItems([{id,quantity:1.5}]));assert.throws(()=>normalizeItems([]));});
+test('delivery requires an address; collection does not',()=>{const c={name:'Test Buyer',email:'test@example.com',phone:'0123456789'};assert.equal(customerFrom(c,'collection').name,c.name);assert.throws(()=>customerFrom(c,'delivery'));});
+test('server prices orders and charges R80 delivery',()=>{const rows=[{id,name:'Test',price_cents:1000,stock:3,is_published:true}];assert.equal(quoteFrom(rows,[{id,quantity:2}],'delivery').totalCents,10000);assert.equal(quoteFrom(rows,[{id,quantity:2}],'collection').totalCents,2000);});
+test('out of stock and unpublished products cannot be ordered',()=>{assert.throws(()=>quoteFrom([{id,name:'Test',stock:0,is_published:true}],[{id,quantity:1}],'collection'),{status:409});assert.throws(()=>quoteFrom([{id,stock:2,is_published:false}],[{id,quantity:1}],'collection'),{status:409});});
