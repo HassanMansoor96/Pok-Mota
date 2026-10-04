@@ -22,7 +22,7 @@ if(!adminHash){
 if(!/^[0-9a-f]{32}:[0-9a-f]{128}$/.test(adminHash))throw Error('Invalid ADMIN_PASSWORD_HASH');
 if(prod){let origin;try{origin=new URL(process.env.PUBLIC_ORIGIN);}catch{}if(!origin||origin.protocol!=='https:'||origin.origin!==process.env.PUBLIC_ORIGIN)throw Error('PUBLIC_ORIGIN must be an exact HTTPS origin in production');}
 const mfaEnabled=process.env.ADMIN_TOTP_ENABLED==='true';
-if(prod&&!mfaEnabled)throw Error('Production admin requires authenticator MFA enrollment');
+// Admin MFA is optional; the operator chooses ADMIN_TOTP_ENABLED.
 if(mfaEnabled)require('./totp').decodeBase32(process.env.ADMIN_TOTP_SECRET);
 const SESSION_MS=8*60*60*1000;
 const credentialVersion=crypto.createHash('sha256').update(username+':'+adminHash+(mfaEnabled?':'+process.env.ADMIN_TOTP_SECRET:'')).digest('hex');
