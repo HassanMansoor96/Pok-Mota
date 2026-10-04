@@ -1,6 +1,8 @@
 # PokéMota — storefront + Create/Update inventory
 
 ## Requirements
+
+Public hosting preparation and the Render Blueprint: see [DEPLOYMENT.md](DEPLOYMENT.md).
 - Node.js 22 or 24 LTS (hosted template uses 24)
 - PostgreSQL running locally (hosted template uses 18)
 

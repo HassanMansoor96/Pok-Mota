@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# Existing frontend and API share one origin. See DEPLOYMENT.md for DB bootstrap.
+services:
+  - type: web
+    name: pokemota
+    runtime: node
+    plan: 0.5c-512mb
+    region: frankfurt
+    numInstances: 1
+    autoDeployTrigger: "off"
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: ADMIN_TOTP_SECRET
+        sync: false
+      - key: ADMIN_TOTP_ENABLED
+        value: "true"
+      - key: SUPPORT_EMAIL
+        sync: false
+      - key: STORE_NAME
+        value: PokéMota
+      - key: PAYMENT_MODE
+        value: sandbox
+      - key: PAYSTACK_LIVE_READY
+        value: "false"
+      - key: CHECKOUT_ENABLED
+        value: "false"
+      - key: POLICIES_APPROVED
+        value: "false"
+      - key: EFT_ORDER_EXPIRY_HOURS
+        value: "0"
+databases:
+  - name: pokemota-db
+    plan: 0.1c-256mb
+    region: frankfurt
+    postgresMajorVersion: "18"
+    diskSizeGB: 1
+    ipAllowList: []

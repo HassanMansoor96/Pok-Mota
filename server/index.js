@@ -1,5 +1,6 @@
 'use strict';
 require('dotenv').config();
+require('./public-origin').configurePublicOrigin();
 const express=require('express'),helmet=require('helmet'),crypto=require('node:crypto'),path=require('node:path');
 const pool=require('./db'),{validateProduct}=require('./validation');
 const app=express();app.disable('x-powered-by');app.set('trust proxy',process.env.TRUST_PROXY==='1'?1:false);
