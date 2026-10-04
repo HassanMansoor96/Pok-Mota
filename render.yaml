@@ -30,7 +30,7 @@ services:
       - key: ADMIN_TOTP_SECRET
         sync: false
       - key: ADMIN_TOTP_ENABLED
-        value: "true"
+        value: "false"
       - key: SUPPORT_EMAIL
         sync: false
       - key: STORE_NAME
