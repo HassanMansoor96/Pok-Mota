@@ -1,10 +1,11 @@
 # yaml-language-server: $schema=https://render.com/schema/render.yaml.json
-# Existing frontend and API share one origin. See DEPLOYMENT.md for DB bootstrap.
+# Free Render web hosting; PostgreSQL is provided separately by Neon Free.
+# DATABASE_URL must use a restricted runtime role with verified TLS.
 services:
   - type: web
     name: pokemota
     runtime: node
-    plan: 0.5c-512mb
+    plan: free
     region: frankfurt
     numInstances: 1
     autoDeployTrigger: "off"
@@ -45,10 +46,3 @@ services:
         value: "false"
       - key: EFT_ORDER_EXPIRY_HOURS
         value: "0"
-databases:
-  - name: pokemota-db
-    plan: 0.1c-256mb
-    region: frankfurt
-    postgresMajorVersion: "18"
-    diskSizeGB: 1
-    ipAllowList: []
