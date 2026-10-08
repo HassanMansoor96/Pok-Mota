@@ -9,10 +9,11 @@
   function badges(p) {
     const m=p.cardMetadata || {}, symbol=safeImage(m.setSymbolUrl);
     const labels=(m.types || []).length ? m.types : (m.cardCategory ? [m.cardCategory==='Pokemon'?'Pokémon':m.cardCategory] : []);
-    return `<div class="card-badges">${symbol?`<img class="set-symbol" src="${esc(symbol)}" alt="${esc(p.set)} set symbol" loading="lazy" referrerpolicy="no-referrer">`:''}${labels.map(t=>`<span class="type-badge">${esc(t)}</span>`).join('')}</div>`;
+    return `<div class="card-badges">${symbol?`<img class="set-symbol" src="${esc(symbol)}" alt="${esc(p.set)} set symbol" loading="lazy" referrerpolicy="no-referrer">`:''}${p.stock<=0?'<span class="type-badge sold-out-badge">Sold out</span>':''}${labels.map(t=>`<span class="type-badge">${esc(t)}</span>`).join('')}</div>`;
   }
   document.addEventListener('error',event=>{const img=event.target;if(img instanceof HTMLImageElement && img.classList.contains('real-card-image')){img.hidden=true;const fallback=img.nextElementSibling;if(fallback)fallback.hidden=false;}else if(img instanceof HTMLImageElement && img.classList.contains('set-symbol'))img.hidden=true;},true);
-  window.PokemotaCard={art,badges};
+  function price(p) { return p.stock<=0 && Number(p.price)===0 ? '' : new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR'}).format(p.price); }
+  window.PokemotaCard={art,badges,price};
   // Only offer inspection once an actual image has loaded successfully.
   document.addEventListener('load',event=>{
     const img=event.target;
