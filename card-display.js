@@ -13,7 +13,22 @@
   }
   document.addEventListener('error',event=>{const img=event.target;if(img instanceof HTMLImageElement && img.classList.contains('real-card-image')){img.hidden=true;const fallback=img.nextElementSibling;if(fallback)fallback.hidden=false;}else if(img instanceof HTMLImageElement && img.classList.contains('set-symbol'))img.hidden=true;},true);
   function price(p) { return p.stock<=0 && Number(p.price)===0 ? '' : new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR'}).format(p.price); }
-  window.PokemotaCard={art,badges,price};
+  function paginate(items,page,size) {
+    const pages=Math.max(1,Math.ceil(items.length/size));
+    page=Math.max(1,Math.min(pages,Number.isSafeInteger(page)?page:1));
+    return {page,pages,items:items.slice((page-1)*size,page*size)};
+  }
+  function pager(node,state,onChange) {
+    node.replaceChildren();node.hidden=state.pages<=1;
+    if(node.hidden)return;
+    const previous=document.createElement('button'),next=document.createElement('button'),label=document.createElement('span');
+    previous.type=next.type='button';previous.textContent='Previous';next.textContent='Next';
+    previous.disabled=state.page===1;next.disabled=state.page===state.pages;
+    label.textContent='Page '+state.page+' of '+state.pages;label.setAttribute('aria-live','polite');
+    previous.addEventListener('click',()=>onChange(state.page-1));next.addEventListener('click',()=>onChange(state.page+1));
+    node.append(previous,label,next);
+  }
+  window.PokemotaCard={art,badges,price,paginate,pager};
   // Only offer inspection once an actual image has loaded successfully.
   document.addEventListener('load',event=>{
     const img=event.target;
