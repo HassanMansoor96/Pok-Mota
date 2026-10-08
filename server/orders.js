@@ -18,6 +18,7 @@ function customerFrom(raw,method){
  return result;
 }
 function methodFrom(value){if(!['collection','delivery'].includes(value))fail('Choose collection or delivery.');return value;}
+function checkoutOpen(){return process.env.NODE_ENV!=='production'||(process.env.CHECKOUT_ENABLED==='true'&&process.env.POLICIES_APPROVED==='true');}
 function quoteFrom(rows,items,method){
  const byId=new Map(rows.map(p=>[p.id,p]));
  const lines=items.map(item=>{const p=byId.get(item.id);if(!p||!p.is_published)fail('An item is no longer available. Remove it from your bag.',409);if(p.stock<item.quantity)fail(p.name+' has insufficient stock. Update your bag.',409);return {id:p.id,name:p.name,variant:p.card_metadata?.marketVariant||'',number:p.card_number,set:p.set_name,imageUrl:p.image_url,quantity:item.quantity,unitCents:p.price_cents,lineCents:p.price_cents*item.quantity};});
@@ -30,7 +31,7 @@ function mountOrders(app,pool,auth,csrf,token,requireCustomer,payments=require('
  const wrap=fn=>async(req,res)=>{try{await fn(req,res);}catch(e){if(!e.status)console.error('Order request failed:',e.code||'internal');res.status(e.status||500).json({error:e.status?e.message:'Unable to process this request. Please try again.'});}};
  const selectProducts='SELECT id,name,card_number,set_name,image_url,price_cents,stock,is_published,card_metadata FROM products WHERE id=ANY($1::uuid[]) ORDER BY id';
  const receipt=o=>({reference:o.reference,status:o.status,totalCents:o.total_cents,fulfilment:o.fulfilment,paymentMethod:o.payment_method||'eft',collectionArea:settings.collectionArea,eftInstructions:(!o.payment_method||o.payment_method==='eft')?settings.eftInstructions:undefined});
- app.get('/api/checkout/config',(req,res)=>{const {eftInstructions,...publicSettings}=settings;res.set('Cache-Control','no-store').json({...publicSettings,paymentMethod:'EFT',paymentMethods:payments.methods(),paymentEnvironment:payments.mode||'sandbox',currency:'ZAR'});});
+ app.get('/api/checkout/config',(req,res)=>{const {eftInstructions,...publicSettings}=settings;res.set('Cache-Control','no-store').json({...publicSettings,checkoutOpen:checkoutOpen(),paymentMethod:'EFT',paymentMethods:payments.methods(),paymentEnvironment:payments.mode||'sandbox',currency:'ZAR'});});
  app.get('/api/account/orders',requireCustomer,wrap(async(req,res)=>{
    const result=await pool.query('SELECT reference,status,fulfilment,items,total_cents AS "totalCents",payment_method AS "paymentMethod",created_at AS "createdAt" FROM orders WHERE customer_id=$1 ORDER BY created_at DESC',[req.customer.id]);
    res.set('Cache-Control','private, no-store').json({orders:result.rows});
@@ -59,7 +60,7 @@ function mountOrders(app,pool,auth,csrf,token,requireCustomer,payments=require('
  }));
  const limit=require('./rate-limiter').limiter(pool,'orders',{windowMs:15*60*1000,limit:10,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Too many order attempts. Please wait before trying again.'}});
  app.post('/api/orders',limit,csrf,requireCustomer,wrap(async(req,res)=>{
-   if(process.env.NODE_ENV==='production'&&(process.env.CHECKOUT_ENABLED!=='true'||process.env.POLICIES_APPROVED!=='true'))fail('Checkout is not open yet. Please contact support.',503);
+   if(!checkoutOpen())return res.status(503).json({code:'CHECKOUT_CLOSED',error:'Checkout is not open yet. Please contact support.'});
    const items=normalizeItems(req.body?.items),method=methodFrom(req.body?.fulfilment),customer=customerFrom({...req.body?.customer,...req.customer.profile},method);
    const key=req.get('Idempotency-Key');if(!uuid(key))fail('Refresh checkout before trying again.');
    if(!Number.isSafeInteger(req.body.expectedTotalCents))fail('Review your order total first.');
