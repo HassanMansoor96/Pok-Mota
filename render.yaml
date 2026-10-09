@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# Free Render web hosting; PostgreSQL is provided separately by Neon Free.
+# DATABASE_URL must use a restricted runtime role with verified TLS.
+services:
+  - type: web
+    name: pokemota
+    runtime: node
+    plan: free
+    region: frankfurt
+    numInstances: 1
+    autoDeployTrigger: "off"
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: ADMIN_TOTP_SECRET
+        sync: false
+      - key: ADMIN_TOTP_ENABLED
+        value: "false"
+      - key: SUPPORT_EMAIL
+        sync: false
+      - key: STORE_NAME
+        value: PokéMota
+      - key: PAYMENT_MODE
+        value: sandbox
+      - key: PAYSTACK_LIVE_READY
+        value: "false"
+      - key: CHECKOUT_ENABLED
+        value: "false"
+      - key: POLICIES_APPROVED
+        value: "false"
+      - key: EFT_ORDER_EXPIRY_HOURS
+        value: "0"
