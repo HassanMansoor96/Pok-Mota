@@ -14,6 +14,10 @@ test('actual production app enforces authentication, CSRF, cookies, file boundar
  for(const path of ['/api/admin/session','/api/admin/products','/api/admin/orders','/api/admin/card-catalogue/sets','/api/admin/sealed-catalogue/sets','/api/account/profile','/api/account/orders','/api/orders/PM-00000000000000000000'])assert.equal((await request(path)).status,401,path);
  for(const path of ['/.env','/server/index.js','/package.json','/.git/config','/PAYMENT-SETUP.md'])assert.equal((await request(path)).status,404,path);
  const page=await request('/');assert.equal(page.status,200);assert.match(page.headers.get('content-security-policy'),/script-src 'self'/);assert.match(page.headers.get('strict-transport-security'),/max-age/);assert.equal(page.headers.get('x-content-type-options'),'nosniff');assert.equal(page.headers.get('access-control-allow-origin'),null);
+ assert.match(await page.text(),/href="\/pokemota"/);
+ const storefront=await request('/pokemota');assert.equal(storefront.status,200);assert.match(await storefront.text(),/id="product-grid"/);
+ assert.equal((await request('/pokemota','HEAD')).status,200);
+ for(const path of ['/pokemota/','/pokemota.html']){const redirect=await fetch(base+path+'?ref=hub',{redirect:'manual'});assert.equal(redirect.status,308);assert.equal(redirect.headers.get('location'),'/pokemota?ref=hub');}
  const credentials={username:'review-admin',password:'isolated-review-password',code:require('../server/totp').totp(process.env.ADMIN_TOTP_SECRET)};
  assert.equal((await request('/api/admin/login','POST',credentials)).status,403);
  assert.equal((await request('/api/admin/login','POST',credentials,{Origin:'https://evil.example'})).status,403);

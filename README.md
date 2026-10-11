@@ -18,7 +18,7 @@ npm run db:runtime
 npm run dev
 ```
 
-Visit **http://localhost:3000** for the storefront and **http://localhost:3000/admin.html** to sign in and manage inventory. **Do not use VS Code Live Server for CRUD**: it cannot run the backend. Do not commit `.env`.
+Visit **http://localhost:3000** for the sites hub, **http://localhost:3000/pokemota** for the storefront and **http://localhost:3000/admin.html** to sign in and manage inventory. **Do not use VS Code Live Server for CRUD**: it cannot run the backend. Do not commit `.env`.
 
 The new PostgreSQL database starts **empty**. Create a product in the admin screen, optionally mark it Published, then refresh the storefront. Published products appear in the catalogue and homepage. Unpublished products are admin-only. Published inventory supports a persistent bag and EFT checkout. Static previews retain demonstration products and disable checkout.
 
