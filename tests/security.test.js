@@ -11,7 +11,7 @@ test('actual production app enforces authentication, CSRF, cookies, file boundar
  return {rows:[],rowCount:0};}}};
  const app=require('../server/index'),server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));t.after(()=>server.close());const base='http://127.0.0.1:'+server.address().port;
  const request=(path,method='GET',body,headers={})=>fetch(base+path,{method,headers:{'Content-Type':'application/json',...headers},body:body===undefined?undefined:JSON.stringify(body)});
- for(const path of ['/api/admin/session','/api/admin/products','/api/admin/orders','/api/admin/card-catalogue/sets','/api/admin/sealed-catalogue/sets','/api/account/profile','/api/account/orders','/api/orders/PM-00000000000000000000'])assert.equal((await request(path)).status,401,path);
+ for(const path of ['/api/admin/session','/api/admin/analytics','/api/admin/products','/api/admin/orders','/api/admin/card-catalogue/sets','/api/admin/sealed-catalogue/sets','/api/account/profile','/api/account/orders','/api/orders/PM-00000000000000000000'])assert.equal((await request(path)).status,401,path);
  for(const path of ['/.env','/server/index.js','/package.json','/.git/config','/PAYMENT-SETUP.md'])assert.equal((await request(path)).status,404,path);
  const page=await request('/');assert.equal(page.status,200);assert.match(page.headers.get('content-security-policy'),/script-src 'self'/);assert.match(page.headers.get('strict-transport-security'),/max-age/);assert.equal(page.headers.get('x-content-type-options'),'nosniff');assert.equal(page.headers.get('access-control-allow-origin'),null);
  assert.match(await page.text(),/href="\/pokemota"/);

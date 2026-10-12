@@ -2,6 +2,7 @@
 
 const BASE = 'https://api.tcgdex.net/v2/';
 const { validateLanguage } = require('./languages');
+const { searchName } = require('./card-search-names');
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/;
 function asset(value, suffix) {
   if (typeof value !== 'string') return '';
@@ -53,24 +54,27 @@ function createCatalogue(fetcher = fetch) {
       return data.map(s => ({ id: s.id, name: s.name })).filter(s => idPattern.test(s.id || '') && typeof s.name === 'string').sort((a,b) => a.name.localeCompare(b.name));
     },
     async search({ name = '', set = '', page = '1', language = 'en' }) {
-      if (typeof name !== 'string' || name.length > 100 || typeof set !== 'string' || (set && !idPattern.test(set)) || typeof page !== 'string' || !/^[1-9]\d{0,3}$/.test(page) || (!set && name.trim().length < 2)) {
+      validateLanguage(language);
+      if (typeof name !== 'string' || name.length > 100 || typeof set !== 'string' || (set && !idPattern.test(set)) || typeof page !== 'string' || !/^[1-9]\d{0,3}$/.test(page) || (!set && name.trim().length < (/[^\x00-\x7f]/.test(name) ? 1 : 2))) {
         const error = Error('Enter at least two letters or choose a set.'); error.status = 400; throw error;
       }
       let data, hasMore;
       const size = 20, current = Number(page);
+      const translated = searchName(name, language);
+      const number = name.trim().replace(/^#/, '').split('/')[0];
       if (set) {
         const found = await get('sets/' + encodeURIComponent(set), language);
         if (!Array.isArray(found.cards)) throw Error('Invalid set response');
-        const filtered = found.cards.filter(c => String(c.name).toLowerCase().includes(name.trim().toLowerCase()));
+        const filtered = found.cards.filter(c => String(c.name).toLowerCase().includes(translated.toLowerCase()) || (/^\d+$/.test(number) && Number(c.localId) === Number(number)) || String(c.id).toLowerCase() === name.trim().toLowerCase());
         data = filtered.slice((current - 1) * size, current * size);
         hasMore = current * size < filtered.length;
       } else {
-        const query = new URLSearchParams({ name: name.trim(), 'pagination:page': String(current), 'pagination:itemsPerPage': String(size) });
+        const query = new URLSearchParams({ name: translated, 'pagination:page': String(current), 'pagination:itemsPerPage': String(size) });
         data = await get('cards?' + query, language);
         if (!Array.isArray(data)) throw Error('Invalid search response');
         hasMore = data.length === size;
       }
-      return { cards: data.slice(0,size).filter(c => idPattern.test(c.id || '')).map(c => ({ id: c.id, name: String(c.name), number: String(c.localId ?? ''), imageUrl: asset(c.image, '/low.webp') })), page: current, hasMore };
+      return { cards: data.slice(0,size).filter(c => idPattern.test(c.id || '')).map(c => ({ id: c.id, name: String(c.name), number: String(c.localId ?? ''), imageUrl: asset(c.image, '/low.webp') })), page: current, hasMore, searchName: translated };
     },
     async card(id, language = 'en') {
       if (typeof id !== 'string' || !idPattern.test(id)) { const error = Error('Invalid card ID'); error.status = 400; throw error; }

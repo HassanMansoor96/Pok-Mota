@@ -11,7 +11,7 @@
   async function api(url,opts={}) {
     const res=await fetch(url,{credentials:'same-origin',...opts,headers:{...(opts.body?{'Content-Type':'application/json'}:{}),...(csrf?{'X-CSRF-Token':csrf}:{}),...opts.headers}});
     let data;try{data=await res.json();}catch{data={error:'Unexpected response'};}
-    if(res.status===401 && csrf && !url.endsWith('/login')){csrf='';$('#login-view').hidden=false;$('#admin-view').hidden=true;$('#logout').hidden=true;message('Your session ended. Sign in again to continue; your product form is preserved.');}if(!res.ok)throw Error(data.error||'Request failed');return data;
+    if(res.status===401 && csrf && !url.endsWith('/login')){csrf='';$('#login-view').hidden=false;$('#admin-view').hidden=true;$('#logout').hidden=true;document.dispatchEvent(new Event('admin-signed-out'));message('Your session ended. Sign in again to continue; your product form is preserved.');}if(!res.ok)throw Error(data.error||'Request failed');return data;
   }
   function preview() {
     const url=field('imageUrl').value;
@@ -23,6 +23,7 @@
   function setMetadata(m={}) {
     metadata={...m};
     field('language').value=m.language||'en';
+    if($('#lookup-language').value!==field('language').value){$('#lookup-language').value=field('language').value;$('#lookup-language').dispatchEvent(new Event('change'));}
     field('cardCategory').value=m.cardCategory||'';
     field('types').value=m.types?.[0]||'';field('secondaryType').value=m.types?.[1]||'';
     updateProductFields();
@@ -43,7 +44,7 @@
   }
   function resetEditor() {
     marketPrices=[];renderMarketPrices(false);
-    clearSearch();editing=null;form.reset();setMetadata({language:$('#lookup-language').value});$('#form-title').textContent='CREATE PRODUCT';
+    clearSearch();editing=null;form.reset();setMetadata({language:$('#lookup-language').value});loadSealedSets();$('#form-title').textContent='CREATE PRODUCT';
   }
   let inventoryPage=1;
   function renderInventory(){
@@ -57,25 +58,33 @@
     $('#inventory-page').textContent='Page '+inventoryPage+' of '+pages;$('#inventory-prev').disabled=inventoryPage===1;$('#inventory-next').disabled=inventoryPage===pages;$('.inventory-pagination').hidden=pages===1;
   }
   async function load() {
-    try {products=await api('/api/admin/products');const select=$('#inventory-set'),selected=select.value;select.replaceChildren(new Option('All sets','all'));[...new Set(products.map(p=>p.set))].sort().forEach(set=>select.add(new Option(set,set)));if([...select.options].some(o=>o.value===selected))select.value=selected;renderInventory();}
+    try {products=await api('/api/admin/products');const select=$('#inventory-set'),selected=select.value;select.replaceChildren(new Option('All sets','all'));[...new Set(products.map(p=>p.set))].sort().forEach(set=>select.add(new Option(set,set)));if([...select.options].some(o=>o.value===selected))select.value=selected;renderInventory();document.dispatchEvent(new Event('admin-inventory-updated'));}
     catch(e){message(e.message);}
   }
-  for(const id of ['search','visibility','stock','category','set','sort'])$('#inventory-'+id).addEventListener(id==='search'?'input':'change',()=>{inventoryPage=1;renderInventory();});
-  $('#inventory-reset').addEventListener('click',()=>{$('#inventory-search').value='';for(const id of ['visibility','stock','category','set'])$('#inventory-'+id).value='all';$('#inventory-sort').value='updated';inventoryPage=1;renderInventory();});
-  $('#inventory-summary').addEventListener('click',e=>{const filter=e.target.closest('[data-summary]')?.dataset.summary;if(!filter)return;$('#inventory-visibility').value=['published','draft'].includes(filter)?filter:'all';$('#inventory-stock').value=['in-stock','sold-out'].includes(filter)?filter:'all';inventoryPage=1;renderInventory();});
+  for(const id of ['search','visibility','stock','category','set','sort'])$('#inventory-'+id).addEventListener(id==='search'?'input':'change',()=>{inventoryPage=1;renderInventory();document.dispatchEvent(new Event('admin-inventory-updated'));});
+  $('#inventory-reset').addEventListener('click',()=>{$('#inventory-search').value='';for(const id of ['visibility','stock','category','set'])$('#inventory-'+id).value='all';$('#inventory-sort').value='updated';inventoryPage=1;renderInventory();document.dispatchEvent(new Event('admin-inventory-updated'));});
+  $('#inventory-summary').addEventListener('click',e=>{const filter=e.target.closest('[data-summary]')?.dataset.summary;if(!filter)return;$('#inventory-visibility').value=['published','draft'].includes(filter)?filter:'all';$('#inventory-stock').value=['in-stock','sold-out'].includes(filter)?filter:'all';inventoryPage=1;renderInventory();document.dispatchEvent(new Event('admin-inventory-updated'));});
   for(const [id,delta] of [['prev',-1],['next',1]])$('#inventory-'+id).addEventListener('click',()=>{inventoryPage+=delta;renderInventory();$('#inventory-count').scrollIntoView({behavior:'smooth',block:'start'});});
-  let languageVersion=0;
+  let languageVersion=0,lookupSets=[];
+  function renderSets(){
+    const selected=$('#lookup-set').value,term=$('#lookup-set-filter').value.trim().toLowerCase();
+    $('#lookup-set').replaceChildren(new Option('All sets',''));
+    lookupSets.filter(s=>(s.id+' '+s.name).toLowerCase().includes(term)).forEach(s=>$('#lookup-set').add(new Option(s.id+' · '+s.name,s.id)));
+    if([...$('#lookup-set').options].some(o=>o.value===selected))$('#lookup-set').value=selected;
+  }
+  $('#lookup-set-filter').addEventListener('input',renderSets);
   async function loadSets() {
     const version=languageVersion, language=$('#lookup-language').value;
-    try { const sets=await api('/api/admin/card-catalogue/sets?language='+language);if(version!==languageVersion)return;$('#lookup-set').replaceChildren(new Option('All sets',''));sets.forEach(s=>$('#lookup-set').add(new Option(s.name,s.id))); }
+    try { const sets=await api('/api/admin/card-catalogue/sets?language='+language);if(version!==languageVersion)return;lookupSets=sets;renderSets(); }
     catch { if(version!==languageVersion)return;lookupMessage('Set list unavailable. You can still search by card name or enter details manually.'); }
   }
   function showAdmin() {document.dispatchEvent(new Event('admin-signed-in'));$('#login-view').hidden=true;$('#admin-view').hidden=false;$('#logout').hidden=false;load();loadSets();loadSealedSets();}
   $('#login-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);try{const r=await api('/api/admin/login',{method:'POST',body:JSON.stringify({username:f.get('username'),password:f.get('password'),code:f.get('code')})});csrf=r.csrfToken;e.target.reset();showAdmin();message('Signed in.');}catch(err){message(err.message);}});
   $('#logout').addEventListener('click',async()=>{try{await api('/api/admin/logout',{method:'POST'});location.reload();}catch(e){message(e.message);}});
-  $('#new-product').addEventListener('click',()=>{resetEditor();$('#form-panel').hidden=false;$('#form-panel').scrollIntoView({behavior:'smooth'});$('#lookup-name').focus();});
-  $('#cancel-edit').addEventListener('click',()=>{clearSearch();$('#form-panel').hidden=true;editing=null;});
-  $('#product-rows').addEventListener('click',e=>{const id=e.target.closest('[data-edit]')?.dataset.edit,p=products.find(x=>x.id===id);if(!p)return;resetEditor();editing=id;editingVersion=p.version;if(p.tag && ![...field('tag').options].some(o=>o.value===p.tag))field('tag').add(new Option(p.tag,p.tag));for(const name of textFields)field(name).value=p[name]??'';field('isPublished').checked=p.isPublished;setMetadata(p.cardMetadata);$('#form-title').textContent='UPDATE PRODUCT';$('#form-panel').hidden=false;$('#form-panel').scrollIntoView({behavior:'smooth'});field(e.target.closest('[data-edit]')?.dataset.focus||'name').focus({preventScroll:true});});
+  $('#new-product').addEventListener('click',()=>{resetEditor();document.dispatchEvent(new Event('admin-editor-open'));$('#form-panel').scrollIntoView({behavior:'smooth'});$('#lookup-name').focus();});
+  $('#nav-create-product').addEventListener('click',()=>$('#new-product').click());
+  $('#cancel-edit').addEventListener('click',()=>{clearSearch();$('#form-panel').hidden=true;editing=null;document.dispatchEvent(new Event('admin-editor-close'));});
+  $('#product-rows').addEventListener('click',e=>{const id=e.target.closest('[data-edit]')?.dataset.edit,p=products.find(x=>x.id===id);if(!p)return;resetEditor();editing=id;editingVersion=p.version;if(p.tag && ![...field('tag').options].some(o=>o.value===p.tag))field('tag').add(new Option(p.tag,p.tag));for(const name of textFields)field(name).value=p[name]??'';field('isPublished').checked=p.isPublished;setMetadata(p.cardMetadata);$('#form-title').textContent='UPDATE PRODUCT';document.dispatchEvent(new Event('admin-editor-open'));$('#form-panel').scrollIntoView({behavior:'smooth'});field(e.target.closest('[data-edit]')?.dataset.focus||'name').focus({preventScroll:true});});
   $('#card-search-form').addEventListener('submit',e=>{e.preventDefault();clearSealedSearch();searchCriteria={language:$('#lookup-language').value,name:$('#lookup-name').value.trim(),set:$('#lookup-set').value};search(1);});
   $('#lookup-more').addEventListener('click',()=>search(page+1));
   async function search(nextPage) {
@@ -89,7 +98,7 @@
       if(generation!==searchVersion)return;
       const html=data.cards.map(c=>`<button type="button" class="lookup-card" data-card="${esc(c.id)}">${c.imageUrl?`<img src="${esc(c.imageUrl)}" loading="lazy" alt="${esc(c.name)}" referrerpolicy="no-referrer">`:'<span class="lookup-no-image">No image</span>'}<strong>${esc(c.name)}</strong><span>${esc(c.id)} · #${esc(c.number)}</span></button>`).join('');
       $('#lookup-results').insertAdjacentHTML('beforeend',html);page=data.page;$('#lookup-more').hidden=!data.hasMore;
-      lookupMessage(data.cards.length?'Select the exact printing to fill the product details.':nextPage===1?'No cards found. Try another name or set.':'No more results.');
+      lookupMessage((data.searchName&&data.searchName!==searchCriteria.name?'Searched for '+data.searchName+'. ':'')+(data.cards.length?'Select the exact printing to fill the product details.':nextPage===1?'No cards found. Try the printed name, or choose a set and search by card number.':'No more results.'));
     } catch(e){if(generation===searchVersion)lookupMessage(e.message);}
     finally{if(generation===searchVersion){$('#lookup-search').disabled=false;$('#lookup-more').disabled=false;}}
   }
@@ -115,7 +124,7 @@
     const payload=Object.fromEntries(textFields.map(k=>[k,str(k)]));
     Object.assign(payload,{price:Number(f.get('price')),stock:Number(f.get('stock')),isPublished:field('isPublished').checked,cardMetadata:{...metadata,language:str('language'),cardCategory:str('cardCategory'),types:[...new Set([field('types').value,field('secondaryType').value].filter(Boolean))]}});
     const button=$('#save-product');button.disabled=true;
-    try{await api(editing?'/api/admin/products/'+encodeURIComponent(editing):'/api/admin/products',{method:editing?'PUT':'POST',body:JSON.stringify({...payload,...(editing?{version:editingVersion}:{})})});message(editing?'Product updated.':'Product created.');clearSearch();editing=null;$('#form-panel').hidden=true;await load();}catch(err){message(err.message);}finally{button.disabled=false;}
+    try{await api(editing?'/api/admin/products/'+encodeURIComponent(editing):'/api/admin/products',{method:editing?'PUT':'POST',body:JSON.stringify({...payload,...(editing?{version:editingVersion}:{})})});message(editing?'Product updated.':'Product created.');clearSearch();editing=null;$('#form-panel').hidden=true;document.dispatchEvent(new Event('admin-editor-close'));await load();}catch(err){message(err.message);}finally{button.disabled=false;}
   });
 
   function renderMarketPrices(apply) {
@@ -143,11 +152,12 @@
   function clearSealedSearch() {
     sealedVersion++;sealedCriteria=null;sealedPage=1;
     $('#sealed-results').replaceChildren();$('#sealed-more').hidden=true;
-    $('#sealed-search').disabled=false;$('#sealed-more').disabled=false;$('#sealed-status').textContent='';
+    $('#sealed-search').disabled=$('#lookup-language').value.startsWith('zh-');$('#sealed-more').disabled=false;$('#sealed-status').textContent='';
   }
   async function loadSealedSets() {
     const version=languageVersion, language=$('#lookup-language').value;
-    if(language.startsWith('zh-')){$('#sealed-status').textContent='Chinese sealed products are not available from this catalogue. Enter their details manually below.';return;}
+    const unavailable=language.startsWith('zh-');$('#sealed-search').disabled=unavailable;$('#sealed-set').disabled=unavailable;$('#sealed-name').disabled=unavailable;
+    if(unavailable){$('#sealed-status').textContent='Chinese sealed products are not available from this catalogue. Enter their details manually below.';return;}
     try {const sets=await api('/api/admin/sealed-catalogue/sets?language='+language);if(version!==languageVersion)return;$('#sealed-set').replaceChildren(new Option('Choose a set',''));sets.forEach(s=>$('#sealed-set').add(new Option(s.name,s.id)));}
     catch(e){if(version===languageVersion)$('#sealed-status').textContent=e.message;}
   }
@@ -181,7 +191,7 @@
     finally{if(version===sealedVersion){$('#save-product').disabled=false;$('#lookup-search').disabled=false;$('#lookup-more').disabled=false;}}
   });
 
-  $('#lookup-language').addEventListener('change',()=>{languageVersion++;clearSearch();$('#lookup-set').replaceChildren(new Option('All sets',''));$('#sealed-set').replaceChildren(new Option('Choose a set',''));loadSets();loadSealedSets();if(!metadata.id)field('language').value=$('#lookup-language').value;});
+  $('#lookup-language').addEventListener('change',()=>{languageVersion++;clearSearch();lookupSets=[];$('#lookup-set-filter').value='';renderSets();$('#sealed-set').replaceChildren(new Option('Choose a set',''));loadSets();loadSealedSets();if(!metadata.id)field('language').value=$('#lookup-language').value;});
   field('language').addEventListener('change',()=>{const language=field('language').value;clearSearch();setMetadata({language});marketPrices=[];renderMarketPrices(false);});
   api('/api/admin/session').then(r=>{csrf=r.csrfToken;showAdmin();}).catch(()=>{});
 })();

@@ -4,6 +4,23 @@ const assert = require('node:assert/strict');
 const {createCatalogue} = require('../server/card-catalogue');
 const {createSealedCatalogue} = require('../server/sealed-catalogue');
 const {validateMetadata} = require('../server/card-metadata');
+const {searchName}=require('../server/card-search-names');
+
+test('English names find native printings and suffixes do not hide other variants',()=>{
+  assert.equal(searchName('Pikachu','ja'),'ピカチュウ');
+  assert.equal(searchName('Charizard ex','zh-cn'),'喷火龙');
+  assert.equal(searchName('Charizard','zh-tw'),'噴火龍');
+  assert.equal(searchName('ピカチュウ','ja'),'ピカチュウ');
+  assert.equal(searchName('Rare Candy','ja'),'Rare Candy');
+});
+test('Asian lookup translates upstream queries and accepts card numbers within sets',async()=>{
+  let queried;
+  const cards=createCatalogue(async url=>{queried=url;return {ok:true,json:async()=>url.includes('/sets/')?{cards:[{id:'SV8-025',localId:'025',name:'皮卡丘'}]}:[{id:'SV8-025',localId:'025',name:'皮卡丘'}]};});
+  const translated=await cards.search({name:'Pikachu',language:'zh-cn'});assert.equal(new URL(queried).searchParams.get('name'),'皮卡丘');assert.equal(translated.searchName,'皮卡丘');
+  assert.equal((await cards.search({name:'25/100',set:'SV8',language:'zh-cn'})).cards.length,1);
+  assert.equal((await cards.search({name:'#025',set:'SV8',language:'zh-cn'})).cards.length,1);
+  await cards.search({name:'夢',language:'ja'});
+});
 
 test('card languages have separate caches and preserve the printing language', async () => {
   const calls=[];

@@ -1,5 +1,11 @@
 # HM Collectables — storefront + Create/Update inventory
 
+Admin now opens on store analytics (7, 30 or 90 days), with separate Inventory, Orders and Add Product screens and a mobile menu. Analytics use existing orders and inventory; paid order values include delivery and are grouped by order creation date. No visitor tracking is installed.
+
+Japanese and Chinese singles accept English Pokémon species names, printed names, and card numbers within a selected set. Set filters include catalogue codes. Trainer names require the printed language. Japanese sealed lookup uses TCGCSV's Pokémon Japan catalogue; Chinese sealed products require manual entry. Missing provider images remain empty.
+
+Bundled name translations in `server/pokemon-names.json` are derived from [PokeAPI's Pokémon species names](https://github.com/PokeAPI/pokeapi/blob/master/data/v2/csv/pokemon_species_names.csv). See [the included license](server/POKEAPI-LICENSE.md). The lookup uses this bundled data without contacting PokeAPI at runtime.
+
 ## Requirements
 
 Public hosting preparation and the Render Blueprint: see [DEPLOYMENT.md](DEPLOYMENT.md).
