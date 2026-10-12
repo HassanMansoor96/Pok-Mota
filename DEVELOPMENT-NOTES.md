@@ -1,0 +1,11 @@
+﻿# Boutique development — 3 October 2026
+
+Implemented a warm ivory / charcoal / forest system on public pages, with serif headings, larger labels, contained product images, responsive tiles, visible focus, touch targets and reduced-motion support. Homepage uses the newest available listing as its hero and links tiles to product details. Existing custom badges remain. Catalogue filters show removable chips and persist search, category, set and rarity in the URL. Blank rarity options are excluded. Product images offer a native inspection dialog with focus restoration. Catalogue reference images are identified; unverified listing images are not described as item photographs.
+
+Commerce was already installed and the live API served five published products. No installer, schema changes, credentials, commits or pushes were needed. Existing user changes were retained. README and stale catalogue/about wording were reconciled. Public pages link to the bag. Existing R80 delivery, free collection in Brits and EFT instructions remain.
+
+Verification: all 34 existing tests passed; changed JavaScript passed syntax checks. Chrome desktop and mobile checks covered search, category filters, removable chips, clear filters, product navigation, image dialog open/close, mobile menu, bag drawer, checkout collection and delivery quotes. Delivery changed the observed total by R80 and revealed address fields. Mobile checkout had no horizontal overflow. No real order was submitted and admin authentication/status mutations were not exercised. Concurrency and one-time cancellation were inspected in the existing transactional code, not proven by a database integration test.
+
+Limitations: the product schema exposes one image URL, with no verified front/back photograph fields. Public contact details and banking details remain unavailable. Collections still uses existing curated destinations, rather than dynamically generated category tiles. Further accessibility review is needed before claiming full WCAG conformance; the core text colour pairs meet AA, but this is not a full accessibility audit.
+
+References consulted: Aesop shop-all, Japan2UK, The Card Vault, Nielsen Norman Group visual design principles, Baymard product lists and shipping transparency, and W3C WCAG 2.2 quick reference.
