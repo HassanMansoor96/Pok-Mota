@@ -1,6 +1,8 @@
 # HM Collectables — storefront + Create/Update inventory
 
-Admin now opens on store analytics (7, 30 or 90 days), with separate Inventory, Orders and Add Product screens and a mobile menu. Analytics use existing orders and inventory; paid order values include delivery and are grouped by order creation date. No visitor tracking is installed.
+Admin now opens on store analytics (7, 30 or 90 days), with separate Inventory, Orders and Add Product screens and a mobile menu. Analytics use existing orders and inventory; paid order values include delivery and are grouped by order creation date.
+
+Website traffic appears in the same Overview: page views, estimated browsing visits, recent views, daily traffic, popular pages, referral domains and device categories. `traffic.js` records visible public pages once per load (including back/forward cache restores). A browser-tab visit expires after 30 minutes without a tracked view. Visits estimate browsing sessions, not unique people; admin pages, recognised bots and DNT/GPC opt-outs are excluded. No analytics cookies, IP addresses, query strings, full referrer URLs or personal account details are stored. Collection and reports use the same site and PostgreSQL database. `server/traffic.sql` is an additive migration and grants only SELECT/INSERT/DELETE on the new table to existing runtime roles. Apply it before publishing; fresh database setup includes it automatically. Traffic records are kept for 95 days and cleaned hourly when new views arrive. Tracking starts at deployment; historical traffic is not reconstructed.
 
 Japanese and Chinese singles accept English Pokémon species names, printed names, and card numbers within a selected set. Set filters include catalogue codes. Trainer names require the printed language. Japanese sealed lookup uses TCGCSV's Pokémon Japan catalogue; Chinese sealed products require manual entry. Missing provider images remain empty.
 

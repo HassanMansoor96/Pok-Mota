@@ -10,6 +10,7 @@ async function grantRuntime(db,role,schema='public'){
  await db.query(`GRANT CONNECT ON DATABASE ${ident(database)} TO ${ident(role)}`);
  await db.query(`GRANT USAGE ON SCHEMA ${ident(schema)} TO ${ident(role)}`);
  for(const table of tables)await db.query(`GRANT SELECT,INSERT,UPDATE,DELETE ON ${ident(schema)}.${ident(table)} TO ${ident(role)}`);
+ await db.query(`GRANT SELECT,INSERT,DELETE ON ${ident(schema)}.site_page_views TO ${ident(role)}`);
 }
 async function provision(){
  const root=path.join(__dirname,'..'),envPath=path.join(root,'.env'),migrationPath=path.join(root,'.env.migrations');
