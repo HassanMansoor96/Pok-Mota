@@ -71,3 +71,5 @@ body.boutique{--paper:#f5f2ea;--surface:#fffdf8;--ink:#252d28;--muted:#566057;--
 .boutique .image-dialog{background:var(--paper);color:var(--ink);border:1px solid var(--line);width:min(94vw,900px);max-height:92vh;padding:18px;overflow:auto}.boutique .image-dialog::backdrop{background:#18251fba}.boutique .image-dialog img{display:block;width:100%;height:auto;max-height:none;object-fit:contain;margin-top:16px}.boutique .image-dialog button{position:sticky;top:0;background:var(--surface);z-index:1}
 .boutique .mobile-nav{background:var(--paper);border-color:var(--line)}.boutique .mobile-nav a{border-color:var(--line);font-size:13px}
 @media(max-width:770px){.boutique .product-art.detail-art.card-image-wrap{height:460px;min-height:0;padding:24px}}
+
+@media(max-width:440px){.boutique .brand{font-size:16px;letter-spacing:-.6px;gap:6px}}

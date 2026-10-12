@@ -22,6 +22,7 @@
   }
   function setMetadata(m={}) {
     metadata={...m};
+    field('language').value=m.language||'en';
     field('cardCategory').value=m.cardCategory||'';
     field('types').value=m.types?.[0]||'';field('secondaryType').value=m.types?.[1]||'';
     updateProductFields();
@@ -42,7 +43,7 @@
   }
   function resetEditor() {
     marketPrices=[];renderMarketPrices(false);
-    clearSearch();editing=null;form.reset();setMetadata();$('#form-title').textContent='CREATE PRODUCT';
+    clearSearch();editing=null;form.reset();setMetadata({language:$('#lookup-language').value});$('#form-title').textContent='CREATE PRODUCT';
   }
   let inventoryPage=1;
   function renderInventory(){
@@ -63,9 +64,11 @@
   $('#inventory-reset').addEventListener('click',()=>{$('#inventory-search').value='';for(const id of ['visibility','stock','category','set'])$('#inventory-'+id).value='all';$('#inventory-sort').value='updated';inventoryPage=1;renderInventory();});
   $('#inventory-summary').addEventListener('click',e=>{const filter=e.target.closest('[data-summary]')?.dataset.summary;if(!filter)return;$('#inventory-visibility').value=['published','draft'].includes(filter)?filter:'all';$('#inventory-stock').value=['in-stock','sold-out'].includes(filter)?filter:'all';inventoryPage=1;renderInventory();});
   for(const [id,delta] of [['prev',-1],['next',1]])$('#inventory-'+id).addEventListener('click',()=>{inventoryPage+=delta;renderInventory();$('#inventory-count').scrollIntoView({behavior:'smooth',block:'start'});});
+  let languageVersion=0;
   async function loadSets() {
-    try { const sets=await api('/api/admin/card-catalogue/sets');$('#lookup-set').replaceChildren(new Option('All sets',''));sets.forEach(s=>$('#lookup-set').add(new Option(s.name,s.id))); }
-    catch { lookupMessage('Set list unavailable. You can still search by card name or enter details manually.'); }
+    const version=languageVersion, language=$('#lookup-language').value;
+    try { const sets=await api('/api/admin/card-catalogue/sets?language='+language);if(version!==languageVersion)return;$('#lookup-set').replaceChildren(new Option('All sets',''));sets.forEach(s=>$('#lookup-set').add(new Option(s.name,s.id))); }
+    catch { if(version!==languageVersion)return;lookupMessage('Set list unavailable. You can still search by card name or enter details manually.'); }
   }
   function showAdmin() {document.dispatchEvent(new Event('admin-signed-in'));$('#login-view').hidden=true;$('#admin-view').hidden=false;$('#logout').hidden=false;load();loadSets();loadSealedSets();}
   $('#login-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);try{const r=await api('/api/admin/login',{method:'POST',body:JSON.stringify({username:f.get('username'),password:f.get('password'),code:f.get('code')})});csrf=r.csrfToken;e.target.reset();showAdmin();message('Signed in.');}catch(err){message(err.message);}});
@@ -73,7 +76,7 @@
   $('#new-product').addEventListener('click',()=>{resetEditor();$('#form-panel').hidden=false;$('#form-panel').scrollIntoView({behavior:'smooth'});$('#lookup-name').focus();});
   $('#cancel-edit').addEventListener('click',()=>{clearSearch();$('#form-panel').hidden=true;editing=null;});
   $('#product-rows').addEventListener('click',e=>{const id=e.target.closest('[data-edit]')?.dataset.edit,p=products.find(x=>x.id===id);if(!p)return;resetEditor();editing=id;editingVersion=p.version;if(p.tag && ![...field('tag').options].some(o=>o.value===p.tag))field('tag').add(new Option(p.tag,p.tag));for(const name of textFields)field(name).value=p[name]??'';field('isPublished').checked=p.isPublished;setMetadata(p.cardMetadata);$('#form-title').textContent='UPDATE PRODUCT';$('#form-panel').hidden=false;$('#form-panel').scrollIntoView({behavior:'smooth'});field(e.target.closest('[data-edit]')?.dataset.focus||'name').focus({preventScroll:true});});
-  $('#card-search-form').addEventListener('submit',e=>{e.preventDefault();clearSealedSearch();searchCriteria={name:$('#lookup-name').value.trim(),set:$('#lookup-set').value};search(1);});
+  $('#card-search-form').addEventListener('submit',e=>{e.preventDefault();clearSealedSearch();searchCriteria={language:$('#lookup-language').value,name:$('#lookup-name').value.trim(),set:$('#lookup-set').value};search(1);});
   $('#lookup-more').addEventListener('click',()=>search(page+1));
   async function search(nextPage) {
     if(!searchCriteria)return;
@@ -94,7 +97,7 @@
     const button=e.target.closest('[data-card]');if(!button)return;clearSealedSearch();
     const generation=++searchVersion;lookupMessage('Loading card details…');$('#save-product').disabled=true;
     try {
-      const card=await api('/api/admin/card-catalogue/cards/'+encodeURIComponent(button.dataset.card));
+      const card=await api('/api/admin/card-catalogue/cards/'+encodeURIComponent(button.dataset.card)+'?language='+encodeURIComponent(searchCriteria.language));
       if(generation!==searchVersion)return;
       for(const key of ['name','set','number','rarity','imageUrl','description'])field(key).value=card[key]||'';
       field('category').value='single';setMetadata(card.cardMetadata);field('price').value='';marketPrices=card.marketPrices||[];renderMarketPrices(true);
@@ -103,14 +106,14 @@
     } catch(e){if(generation===searchVersion)lookupMessage(e.message);}
     finally{if(generation===searchVersion){$('#save-product').disabled=false;$('#lookup-search').disabled=false;$('#lookup-more').disabled=false;}}
   });
-  $('#clear-card-link').addEventListener('click',()=>{clearSearch();setMetadata();marketPrices=[];renderMarketPrices(false);lookupMessage('Card link removed. Current product fields remain editable.');});
+  $('#clear-card-link').addEventListener('click',()=>{clearSearch();setMetadata({language:field('language').value});marketPrices=[];renderMarketPrices(false);lookupMessage('Card link removed. Current product fields remain editable.');});
   field('imageUrl').addEventListener('input',preview);
-  field('category').addEventListener('change',()=>{setMetadata();marketPrices=[];renderMarketPrices(false);});
+  field('category').addEventListener('change',()=>{setMetadata({language:field('language').value});marketPrices=[];renderMarketPrices(false);});
   for(const id of ['selected-card-image','selected-set-symbol'])$('#'+id).addEventListener('error',e=>{e.target.hidden=true;});
   form.addEventListener('submit',async e=>{
     e.preventDefault();updateProductFields();const f=new FormData(form),str=k=>String(f.get(k)||'').trim();
     const payload=Object.fromEntries(textFields.map(k=>[k,str(k)]));
-    Object.assign(payload,{price:Number(f.get('price')),stock:Number(f.get('stock')),isPublished:field('isPublished').checked,cardMetadata:{...metadata,cardCategory:str('cardCategory'),types:[...new Set([field('types').value,field('secondaryType').value].filter(Boolean))]}});
+    Object.assign(payload,{price:Number(f.get('price')),stock:Number(f.get('stock')),isPublished:field('isPublished').checked,cardMetadata:{...metadata,language:str('language'),cardCategory:str('cardCategory'),types:[...new Set([field('types').value,field('secondaryType').value].filter(Boolean))]}});
     const button=$('#save-product');button.disabled=true;
     try{await api(editing?'/api/admin/products/'+encodeURIComponent(editing):'/api/admin/products',{method:editing?'PUT':'POST',body:JSON.stringify({...payload,...(editing?{version:editingVersion}:{})})});message(editing?'Product updated.':'Product created.');clearSearch();editing=null;$('#form-panel').hidden=true;await load();}catch(err){message(err.message);}finally{button.disabled=false;}
   });
@@ -130,9 +133,9 @@
   $('#price-variant').addEventListener('change',applyMarketPrice);
   $('#refresh-price').addEventListener('click',async()=>{
     if(!metadata.id){$('#market-price-note').textContent='Select a card or sealed product from search first.';return;}
-    const id=metadata.id,provider=metadata.provider,setId=metadata.setId,button=$('#refresh-price');button.disabled=true;
+    const id=metadata.id,provider=metadata.provider,setId=metadata.setId,language=metadata.language||'en',button=$('#refresh-price');button.disabled=true;
     const url=provider==='tcgcsv'?'/api/admin/sealed-catalogue/sets/'+encodeURIComponent(setId)+'/products/'+encodeURIComponent(id):'/api/admin/card-catalogue/cards/'+encodeURIComponent(id);
-    try{const card=await api(url);if(metadata.id!==id||metadata.provider!==provider||metadata.setId!==setId)return;marketPrices=card.marketPrices||[];renderMarketPrices(false);$('#market-price-note').textContent+=' Select a price to replace your current selling price.';}catch(e){$('#market-price-note').textContent=e.message;}finally{button.disabled=false;}
+    try{const card=await api(url+'?language='+encodeURIComponent(language));if((metadata.language||'en')!==language||metadata.id!==id||metadata.provider!==provider||metadata.setId!==setId)return;marketPrices=card.marketPrices||[];renderMarketPrices(false);$('#market-price-note').textContent+=' Select a price to replace your current selling price.';}catch(e){$('#market-price-note').textContent=e.message;}finally{button.disabled=false;}
   });
 
 
@@ -143,10 +146,12 @@
     $('#sealed-search').disabled=false;$('#sealed-more').disabled=false;$('#sealed-status').textContent='';
   }
   async function loadSealedSets() {
-    try {const sets=await api('/api/admin/sealed-catalogue/sets');$('#sealed-set').replaceChildren(new Option('Choose a set',''));sets.forEach(s=>$('#sealed-set').add(new Option(s.name,s.id)));}
-    catch(e){$('#sealed-status').textContent=e.message;}
+    const version=languageVersion, language=$('#lookup-language').value;
+    if(language.startsWith('zh-')){$('#sealed-status').textContent='Chinese sealed products are not available from this catalogue. Enter their details manually below.';return;}
+    try {const sets=await api('/api/admin/sealed-catalogue/sets?language='+language);if(version!==languageVersion)return;$('#sealed-set').replaceChildren(new Option('Choose a set',''));sets.forEach(s=>$('#sealed-set').add(new Option(s.name,s.id)));}
+    catch(e){if(version===languageVersion)$('#sealed-status').textContent=e.message;}
   }
-  $('#sealed-search-form').addEventListener('submit',e=>{e.preventDefault();clearSearch();sealedCriteria={set:$('#sealed-set').value,name:$('#sealed-name').value.trim()};searchSealed(1);});
+  $('#sealed-search-form').addEventListener('submit',e=>{e.preventDefault();clearSearch();sealedCriteria={language:$('#lookup-language').value,set:$('#sealed-set').value,name:$('#sealed-name').value.trim()};searchSealed(1);});
   $('#sealed-more').addEventListener('click',()=>searchSealed(sealedPage+1));
   async function searchSealed(nextPage) {
     if(!sealedCriteria)return;
@@ -166,7 +171,7 @@
     const button=e.target.closest('[data-sealed]');if(!button)return;
     searchVersion++;const version=++sealedVersion;$('#save-product').disabled=true;$('#sealed-status').textContent='Loading sealed product?';
     try {
-      const product=await api('/api/admin/sealed-catalogue/sets/'+encodeURIComponent(button.dataset.set)+'/products/'+encodeURIComponent(button.dataset.sealed));
+      const product=await api('/api/admin/sealed-catalogue/sets/'+encodeURIComponent(button.dataset.set)+'/products/'+encodeURIComponent(button.dataset.sealed)+'?language='+encodeURIComponent(sealedCriteria.language));
       if(version!==sealedVersion)return;
       for(const key of ['name','set','number','rarity','imageUrl','description','category','condition','tag'])field(key).value=product[key]||'';
       setMetadata(product.cardMetadata);field('price').value='';marketPrices=product.marketPrices||[];renderMarketPrices(true);
@@ -176,5 +181,7 @@
     finally{if(version===sealedVersion){$('#save-product').disabled=false;$('#lookup-search').disabled=false;$('#lookup-more').disabled=false;}}
   });
 
+  $('#lookup-language').addEventListener('change',()=>{languageVersion++;clearSearch();$('#lookup-set').replaceChildren(new Option('All sets',''));$('#sealed-set').replaceChildren(new Option('Choose a set',''));loadSets();loadSealedSets();if(!metadata.id)field('language').value=$('#lookup-language').value;});
+  field('language').addEventListener('change',()=>{const language=field('language').value;clearSearch();setMetadata({language});marketPrices=[];renderMarketPrices(false);});
   api('/api/admin/session').then(r=>{csrf=r.csrfToken;showAdmin();}).catch(()=>{});
 })();

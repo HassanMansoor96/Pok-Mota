@@ -48,7 +48,7 @@ function createPayments(env = process.env, fetcher = fetch, lookup = dns.lookup)
  async function start(o) {
   const provider = requireMethod(o.payment_method);
   if (provider === 'payfast') {
-   const fields = {merchant_id: env.PAYFAST_MERCHANT_ID, merchant_key: env.PAYFAST_MERCHANT_KEY, return_url: returnUrl(o, 'returned'), cancel_url: returnUrl(o, 'cancelled'), notify_url: origin + '/api/payments/webhooks/payfast', email_address: o.customer.email, m_payment_id: o.reference, amount: (o.total_cents / 100).toFixed(2), item_name: (env.STORE_NAME || 'Pok?Mota') + ' order ' + o.reference};
+   const fields = {merchant_id: env.PAYFAST_MERCHANT_ID, merchant_key: env.PAYFAST_MERCHANT_KEY, return_url: returnUrl(o, 'returned'), cancel_url: returnUrl(o, 'cancelled'), notify_url: origin + '/api/payments/webhooks/payfast', email_address: o.customer.email, m_payment_id: o.reference, amount: (o.total_cents / 100).toFixed(2), item_name: (env.STORE_NAME || 'HM Collectables') + ' order ' + o.reference};
    fields.signature = payfastSignature(fields, env.PAYFAST_PASSPHRASE);
    return {id: o.reference, url: `https://${host}/eng/process`, fields};
   }
@@ -68,7 +68,7 @@ function createPayments(env = process.env, fetcher = fetch, lookup = dns.lookup)
    return {id: o.reference, url: safeUrl(body.data.authorization_url, 'checkout.paystack.com')};
   }
   if (Date.now() - new Date(o.created_at).getTime() > 23 * 60 * 60 * 1000) fail('This payment attempt needs store assistance. Contact us with your order reference.', 409);
-  const params = new URLSearchParams({mode: 'payment', customer_email: o.customer.email, client_reference_id: o.reference, 'metadata[orderReference]': o.reference, success_url: returnUrl(o, 'returned'), cancel_url: returnUrl(o, 'cancelled'), 'line_items[0][price_data][currency]': 'zar', 'line_items[0][price_data][unit_amount]': String(o.total_cents), 'line_items[0][price_data][product_data][name]': 'PokeMota order ' + o.reference, 'line_items[0][quantity]': '1'});
+  const params = new URLSearchParams({mode: 'payment', customer_email: o.customer.email, client_reference_id: o.reference, 'metadata[orderReference]': o.reference, success_url: returnUrl(o, 'returned'), cancel_url: returnUrl(o, 'cancelled'), 'line_items[0][price_data][currency]': 'zar', 'line_items[0][price_data][unit_amount]': String(o.total_cents), 'line_items[0][price_data][product_data][name]': 'HM Collectables order ' + o.reference, 'line_items[0][quantity]': '1'});
   const body = await request('https://api.stripe.com/v1/checkout/sessions', {method: 'POST', headers: {Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY, 'Content-Type': 'application/x-www-form-urlencoded', 'Idempotency-Key': o.reference}, body: params.toString()});
   if (!body.id) fail('Unable to start payment.', 502);
   return {id: body.id, url: safeUrl(body.url, 'checkout.stripe.com')};

@@ -15,7 +15,7 @@ test('actual production app enforces authentication, CSRF, cookies, file boundar
  for(const path of ['/.env','/server/index.js','/package.json','/.git/config','/PAYMENT-SETUP.md'])assert.equal((await request(path)).status,404,path);
  const page=await request('/');assert.equal(page.status,200);assert.match(page.headers.get('content-security-policy'),/script-src 'self'/);assert.match(page.headers.get('strict-transport-security'),/max-age/);assert.equal(page.headers.get('x-content-type-options'),'nosniff');assert.equal(page.headers.get('access-control-allow-origin'),null);
  assert.match(await page.text(),/href="\/pokemota"/);
- const storefront=await request('/pokemota');assert.equal(storefront.status,200);assert.match(await storefront.text(),/id="product-grid"/);
+ const storefront=await request('/pokemota');assert.equal(storefront.status,200);const storefrontHtml=await storefront.text();assert.match(storefrontHtml,/id="shop-heading"/);assert.doesNotMatch(storefrontHtml,/id="product-grid"/);
  assert.equal((await request('/pokemota','HEAD')).status,200);
  for(const path of ['/pokemota/','/pokemota.html']){const redirect=await fetch(base+path+'?ref=hub',{redirect:'manual'});assert.equal(redirect.status,308);assert.equal(redirect.headers.get('location'),'/pokemota?ref=hub');}
  const credentials={username:'review-admin',password:'isolated-review-password',code:require('../server/totp').totp(process.env.ADMIN_TOTP_SECRET)};

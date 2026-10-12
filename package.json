@@ -1,8 +1,8 @@
 {
-  "name": "pokemota",
+  "name": "hm-collectables",
   "version": "0.2.0",
   "private": true,
-  "description": "PokéMota storefront and local admin inventory API",
+  "description": "HM Collectables storefront and local admin inventory API",
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",

@@ -34,7 +34,7 @@ services:
       - key: SUPPORT_EMAIL
         sync: false
       - key: STORE_NAME
-        value: PokéMota
+        value: HM Collectables
       - key: PAYMENT_MODE
         value: sandbox
       - key: PAYSTACK_LIVE_READY

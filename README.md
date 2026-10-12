@@ -1,4 +1,4 @@
-# PokéMota — storefront + Create/Update inventory
+# HM Collectables — storefront + Create/Update inventory
 
 ## Requirements
 

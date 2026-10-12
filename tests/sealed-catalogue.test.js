@@ -12,7 +12,7 @@ test('unknown products and sets return not found',async()=>{const {catalogue}=fi
 
 test('sealed prices match product IDs and convert to ZAR with provider metadata',async()=>{
  const catalogue=createSealedCatalogue(async url=>({ok:true,json:async()=>url.includes('frankfurter')?{rate:18.5,date:new Date().toISOString().slice(0,10)}:{success:true,updated:new Date().toISOString(),results:url.endsWith('groups')?[{groupId:3170,name:'Silver Tempest'}]:url.endsWith('/prices')?[{productId:123,subTypeName:'Normal',marketPrice:100},{productId:999,subTypeName:'Normal',marketPrice:999}]:[box]}}));
- const p=await catalogue.product('3170','123');assert.deepEqual(p.cardMetadata,{provider:'tcgcsv',id:'123',setId:'3170'});assert.equal(p.marketPrices.length,1);assert.equal(p.marketPrices[0].zarCents,185000);assert.equal(p.marketPrices[0].stale,false);
+ const p=await catalogue.product('3170','123');assert.deepEqual(p.cardMetadata,{provider:'tcgcsv',id:'123',setId:'3170',language:'en'});assert.equal(p.marketPrices.length,1);assert.equal(p.marketPrices[0].zarCents,185000);assert.equal(p.marketPrices[0].stale,false);
 });
 test('pricing failures preserve sealed product details',async()=>{
  const catalogue=createSealedCatalogue(async url=>{if(url.endsWith('/prices'))throw Error('offline');return {ok:true,json:async()=>({success:true,results:url.endsWith('groups')?[{groupId:3170,name:'Silver Tempest'}]:[box]})};});

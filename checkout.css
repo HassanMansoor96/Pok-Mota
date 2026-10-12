@@ -3,3 +3,5 @@
 #receipt-instructions{white-space:pre-line;overflow-wrap:anywhere}
 
 .account-orders{margin-top:25px}.account-orders h3{overflow-wrap:anywhere}.account-orders ul{padding-left:20px;line-height:1.7}
+
+@media(max-width:440px){.checkout-header{flex-wrap:wrap}.checkout-header .brand{font-size:18px}}

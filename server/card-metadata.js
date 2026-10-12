@@ -3,7 +3,7 @@ const types = new Set(['Colorless','Darkness','Dragon','Fairy','Fighting','Fire'
 function validateMetadata(value) {
   if (value == null) return {};
   if (typeof value !== 'object' || Array.isArray(value)) throw Error('Invalid card metadata');
-  const out = {};
+  const out = { language: require('./languages').validateLanguage(value.language) };
   for (const [key,max] of Object.entries({marketVariant:80,marketSource:40,provider:20,id:80,setId:80,setSymbolUrl:500,cardCategory:20,illustrator:160})) {
     if (value[key] !== undefined && (typeof value[key] !== 'string' || value[key].length > max)) throw Error('Invalid card '+key);
     out[key] = value[key] || '';
